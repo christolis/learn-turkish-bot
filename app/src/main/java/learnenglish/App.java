@@ -3,6 +3,10 @@ package learnenglish;
 import java.io.BufferedReader;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import javax.security.auth.login.LoginException;
 
@@ -12,8 +16,14 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import learnenglish.config.Configuration;
+import learnenglish.listener.ListenerCommands;
+import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
+import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.hooks.ListenerAdapter;
+import net.dv8tion.jda.api.interactions.commands.OptionType;
+import net.dv8tion.jda.api.interactions.commands.build.OptionData;
 import net.dv8tion.jda.api.utils.cache.CacheFlag;
 
 /**
@@ -23,13 +33,37 @@ public class App {
     private static final String CONFIG_PATH = "config.json";
 
     /* An instance of the app running */
-    public static App app;
+    private static App instance;
 
     /* The configuration file */
     private Configuration config;
 
+    /* An instance of the JDA */
+    private JDA jda;
+
+    private static final Set<ListenerAdapter> listeners = new HashSet<>();
+    {
+        listeners.add(new ListenerCommands());
+    }
+
     /* Application logger */
-    private static Logger logger = LoggerFactory.getLogger(App.class);
+    public static Logger logger = LoggerFactory.getLogger(App.class);
+
+    /**
+     * @return whether the inputted member can use the bot management commands.
+     */
+    public static boolean canMemberUseCommands(Member member) {
+        String[] roles = App.getInstance().getConfiguration().getAllowedRoles();
+        List<String> allowedRoles = Arrays.asList(roles);
+
+        return member.getRoles().stream().anyMatch(role -> {
+            for (String allowedRole : allowedRoles) {
+                if (allowedRole.equals(role.getId()))
+                    return true;
+            }
+            return false;
+        });
+    }
 
     /**
      * Initializes the bot's configuration file.
@@ -63,11 +97,24 @@ public class App {
             JDABuilder builder = JDABuilder.createDefault(
                     getConfiguration().getToken());
 
+            /* JDABuilder configuration stuff */
             builder.disableCache(CacheFlag.MEMBER_OVERRIDES, CacheFlag.VOICE_STATE);
             builder.setBulkDeleteSplittingEnabled(false);
             builder.setActivity(Activity.playing(config.getActivity()));
 
-            builder.build();
+            /* Register all of our listeners */
+            for (ListenerAdapter listener : listeners) {
+                builder.addEventListeners(listener);
+            }
+
+            jda = builder.build();
+            jda.upsertCommand("secret", "Does something really secret!")
+                .addOptions(new OptionData(
+                            OptionType.STRING, 
+                            "secret",
+                            "Secret code!",
+                            true, true)
+                ).queue();
         } catch (LoginException e) {
             logger.error("Failed to initialize bot!");
             System.exit(1);
@@ -83,8 +130,12 @@ public class App {
         return config;
     }
 
+    public static App getInstance() {
+        return instance;
+    }
+
     public static void main(String[] args) {
-        app = new App();
-        app.start();
+        instance = new App();
+        instance .start();
     }
 }
