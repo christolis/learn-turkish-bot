@@ -1,5 +1,8 @@
 package learnenglish.config;
 
+/**
+ * @author Christolis
+ */
 public class Configuration {
 
     private String token;
