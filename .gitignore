@@ -9,3 +9,6 @@ build
 
 # Directories
 bin/*
+
+# Blacklisted files
+config.json
