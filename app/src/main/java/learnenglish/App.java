@@ -22,10 +22,20 @@ import net.dv8tion.jda.api.utils.cache.CacheFlag;
 public class App {
     private static final String CONFIG_PATH = "config.json";
 
+    /* An instance of the app running */
+    public static App app;
+
     /* The configuration file */
-    public Configuration config;
+    private Configuration config;
+
+    /* Application logger */
     private static Logger logger = LoggerFactory.getLogger(App.class);
 
+    /**
+     * Initializes the bot's configuration file.
+     * Parses the selected file and deserializes it
+     * into an instance of Configuration.class
+     */
     public void initConfig() {
         try {
             final Gson gson = new Gson();
@@ -42,6 +52,10 @@ public class App {
         }
     }
 
+    /**
+     * Starts the application that handles the bot.
+     * Automatically sets up the configuration of it as well.
+     */
     public void start() {
         this.initConfig();
 
@@ -58,14 +72,19 @@ public class App {
             logger.error("Failed to initialize bot!");
             System.exit(1);
         }
+
+        logger.info("Ready to go!");
     }
 
+    /**
+     * @return an instance of the bot configuration.
+     */
     public Configuration getConfiguration() {
         return config;
     }
 
     public static void main(String[] args) {
-        App app = new App();
+        app = new App();
         app.start();
     }
 }
