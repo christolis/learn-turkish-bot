@@ -1,6 +1,10 @@
 package learnenglish;
 
 import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
+import java.io.FileWriter;
+import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.util.Arrays;
@@ -21,6 +25,7 @@ import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.Member;
+import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
@@ -31,6 +36,7 @@ import net.dv8tion.jda.api.utils.cache.CacheFlag;
  */
 public class App {
     private static final String CONFIG_PATH = "config.json";
+    private static final char ENTRY_DELIMITER = '|';
 
     /* An instance of the app running */
     private static App instance;
@@ -63,6 +69,66 @@ public class App {
             }
             return false;
         });
+    }
+
+    /**
+     * Enables April fools on the server.
+     * Automatically performs the text values replacement
+     * algorithm once called. Execute with caution if on
+     * production build.
+     */
+    public boolean enableAprilFools() {
+        // Translation files shortened
+        final String translationsDir = config.getChannelTranslationsDir();
+        final String originalsDir = config.getOriginalTranslationsDir();
+
+        /* If original translations file already exists,
+           then the April Fools has probably been already
+           enabled. */
+        if (new File(originalsDir).isFile()) {
+            logger.warn("Tried to enable April Fools more than once!");
+            logger.warn("Skipping command...");
+            return true;
+        }
+
+        try (BufferedReader br = new BufferedReader(new FileReader(translationsDir))) {
+            // English backup file.
+            FileWriter fw = new FileWriter(originalsDir);
+
+            for (String line; (line = br.readLine()) != null; ) {
+                String[] fields = line.split("\\" + ENTRY_DELIMITER);
+                final String trChannelID = fields[0];
+                final String trName = fields[1];
+
+                // Backup original name.
+                TextChannel chnl = getJDA().getTextChannelById(trChannelID);
+                if (chnl != null) {
+                    fw.write(trChannelID + "|" + chnl.getName() + "\n");
+
+                    logger.info("Renaming " + chnl.getName() + " to " + trName + "...");
+                    chnl.getManager().setName(trName).queue();
+
+                    /* We could potentially sleep the thread for each iteration 
+                     * to refrain from hitting Discord's rate limits. */
+                }
+            }
+            
+            fw.close();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Disables April fools on the server.
+     * Automatically performs the text values replacement
+     * algorithm once called. Execute with caution if on
+     * production build.
+     */
+    public void disableAprilFools() {
+        // TODO: Implement
     }
 
     /**
@@ -130,12 +196,16 @@ public class App {
         return config;
     }
 
+    public JDA getJDA() {
+        return jda;
+    }
+
     public static App getInstance() {
         return instance;
     }
 
     public static void main(String[] args) {
         instance = new App();
-        instance .start();
+        instance.start();
     }
 }

@@ -1,9 +1,22 @@
 plugins {
+    id 'com.github.johnrengelman.shadow' version '7.1.2'
     id 'application'
+    id 'java'
 }
+
+mainClassName = 'learnenglish.App'
 
 repositories {
     mavenCentral()
+}
+
+compileJava {
+    sourceCompatibility = '1.8'
+    targetCompatibility = '1.8'
+}
+
+configurations {
+    extraLibs
 }
 
 dependencies {
@@ -17,6 +30,11 @@ dependencies {
     implementation 'org.slf4j:slf4j-simple:1.6.1'
 }
 
-application {
-    mainClass = 'learnenglish.App'
+jar {
+    manifest {
+        attributes(
+            'Main-Class': 'learnenglish.App'
+        )
+    }
+    from { configurations.extraLibs.collect { it.isDirectory() ? it : zipTree(it) } }
 }
