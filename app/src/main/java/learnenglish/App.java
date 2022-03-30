@@ -26,6 +26,7 @@ import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
+import net.dv8tion.jda.api.entities.VoiceChannel;
 import net.dv8tion.jda.api.hooks.ListenerAdapter;
 import net.dv8tion.jda.api.interactions.commands.OptionType;
 import net.dv8tion.jda.api.interactions.commands.build.OptionData;
@@ -98,17 +99,34 @@ public class App {
 
             for (String line; (line = br.readLine()) != null; ) {
                 String[] fields = line.split("\\" + ENTRY_DELIMITER);
-                final String trChannelID = fields[0];
-                final String trName = fields[1];
+                final String trType = fields[0];
+                final String trChannelID = fields[1];
+                final String trName = fields[2];
 
-                // Backup original name.
-                TextChannel chnl = getJDA().getTextChannelById(trChannelID);
-                if (chnl != null) {
-                    fw.write(trChannelID + "|" + chnl.getName() + "\n");
+                switch (trType.toLowerCase()) {
+                    case "text_channel": {
+                        TextChannel chnl = getJDA().getTextChannelById(trChannelID);
 
-                    logger.info("Renaming " + chnl.getName() + " to " + trName + "...");
-                    chnl.getManager().setName(trName).queue();
+                        if (chnl != null) {
+                            fw.write(trType + "|" + trChannelID + "|" + chnl.getName() + "\n");
 
+                            logger.info("Renaming text channel " + chnl.getName() + " to " + trName + "...");
+                            chnl.getManager().setName(trName).queue();
+
+                        }
+                        break;
+                    }
+                    case "voice_channel": {
+                        VoiceChannel vc = getJDA().getVoiceChannelById(trChannelID);
+
+                        if (vc != null) {
+                            fw.write(trType + "|" + trChannelID + "|" + vc.getName() + "\n");
+
+                            logger.info("Renaming voice channel " + vc.getName() + "\n");
+                            vc.getManager().setName(trName).queue();
+                        }
+                        break;
+                    }
                 }
                 /* We could potentially sleep the thread for each iteration 
                  * to refrain from hitting Discord's rate limits. */
@@ -134,14 +152,30 @@ public class App {
         try (BufferedReader br = new BufferedReader(new FileReader(originalsDir))) {
             for (String line; (line = br.readLine()) != null; ) {
                 String[] fields = line.split("\\" + ENTRY_DELIMITER);
-                final String channelID = fields[0];
-                final String name = fields[1];
+                final String type = fields[0];
+                final String channelID = fields[1];
+                final String name = fields[2];
 
-                TextChannel chnl = getJDA().getTextChannelById(channelID);
+                switch (type.toLowerCase()) {
+                    case "text_channel": {
+                        TextChannel chnl = getJDA().getTextChannelById(channelID);
 
-                if (chnl != null) {
-                    logger.info("Reverting " + chnl.getName() + " to " + name + "...");
-                    chnl.getManager().setName(name).queue();
+                        if (chnl != null) {
+                            logger.info("Reverting " + chnl.getName() + " to " + name + "...");
+                            chnl.getManager().setName(name).queue();
+                        }
+                        break;
+                    }
+                    case "voice_channel": {
+                        VoiceChannel vc = getJDA().getVoiceChannelById(channelID);
+
+                        if (vc != null) {
+                            logger.info("Reverting voice channel " + vc.getName() + "\n");
+                            vc.getManager().setName(name).queue();
+                        }
+                        break;
+
+                    }
                 }
 
                 Thread.sleep(UPDATE_DELAY);
