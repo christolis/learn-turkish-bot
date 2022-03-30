@@ -37,6 +37,7 @@ import net.dv8tion.jda.api.utils.cache.CacheFlag;
 public class App {
     private static final String CONFIG_PATH = "config.json";
     private static final char ENTRY_DELIMITER = '|';
+    private static final int UPDATE_DELAY = 500;
 
     /* An instance of the app running */
     private static App instance;
@@ -108,13 +109,14 @@ public class App {
                     logger.info("Renaming " + chnl.getName() + " to " + trName + "...");
                     chnl.getManager().setName(trName).queue();
 
-                    /* We could potentially sleep the thread for each iteration 
-                     * to refrain from hitting Discord's rate limits. */
                 }
+                /* We could potentially sleep the thread for each iteration 
+                 * to refrain from hitting Discord's rate limits. */
+                Thread.sleep(UPDATE_DELAY);
             }
             
             fw.close();
-        } catch (IOException e) {
+        } catch (IOException | InterruptedException e) {
             e.printStackTrace();
             return false;
         }
@@ -123,12 +125,31 @@ public class App {
 
     /**
      * Disables April fools on the server.
-     * Automatically performs the text values replacement
-     * algorithm once called. Execute with caution if on
-     * production build.
+     * Reads fields from the original text file as set
+     * in the configuration file and updates the channels.
      */
     public void disableAprilFools() {
-        // TODO: Implement
+        final String originalsDir = config.getOriginalTranslationsDir();
+
+        try (BufferedReader br = new BufferedReader(new FileReader(originalsDir))) {
+            for (String line; (line = br.readLine()) != null; ) {
+                String[] fields = line.split("\\" + ENTRY_DELIMITER);
+                final String channelID = fields[0];
+                final String name = fields[1];
+
+                TextChannel chnl = getJDA().getTextChannelById(channelID);
+
+                if (chnl != null) {
+                    logger.info("Reverting " + chnl.getName() + " to " + name + "...");
+                    chnl.getManager().setName(name).queue();
+                }
+
+                Thread.sleep(UPDATE_DELAY);
+            }
+            
+        } catch (IOException | InterruptedException e) {
+            e.printStackTrace();
+        }
     }
 
     /**
