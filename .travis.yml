@@ -1,7 +1,3 @@
 language: java
-notifications:
-  webhooks: https://discord.com/api/webhooks/958520125852639273/HmjH7ijdsgZx9KcAmgM8QPTwR09dkwkdVN5t7E8gYyY4lf2UhBFRxpZcksXGJ--c4AzZ
-  email: false
-sudo: false
-script:
-  - jdk_switcher use openjdk8
+jdk:
+  - openjdk8
