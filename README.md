@@ -1,4 +1,5 @@
 # Learn Turkish Bot
+![Travis Status](https://app.travis-ci.com/ChristolisOfficial/learn-turkish-bot.svg?token=qPTycAnPYpHQrM4QJxMb&branch=main)
 The Learn Turkish Bot is a Discord bot that was created for a server called Learn English and it primarily automates tasks during the April Fools day!
 
 ## Features
