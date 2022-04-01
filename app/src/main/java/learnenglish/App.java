@@ -97,9 +97,10 @@ public class App {
         }
 
         Thread t = new Thread(() -> {
+                FileWriter fw = null; // English backup file.
+
                 try (BufferedReader br = new BufferedReader(new FileReader(translationsDir))) {
-                // English backup file.
-                FileWriter fw = new FileWriter(originalsDir);
+                fw = new FileWriter(originalsDir);
 
                 for (String line; (line = br.readLine()) != null; ) {
                     String[] fields = line.split("\\" + ENTRY_DELIMITER);
@@ -149,7 +150,11 @@ public class App {
                 
                 fw.close();
             } catch (IOException | InterruptedException e) {
-                e.printStackTrace();
+                try {
+                    if (fw != null) fw.close();
+                } catch (IOException e2) {
+                    e2.printStackTrace();
+                }
             }
         });
         t.start();
