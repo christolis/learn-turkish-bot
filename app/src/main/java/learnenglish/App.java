@@ -24,6 +24,7 @@ import learnenglish.listener.ListenerCommands;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
+import net.dv8tion.jda.api.entities.Category;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.VoiceChannel;
@@ -95,51 +96,63 @@ public class App {
             return true;
         }
 
-        try (BufferedReader br = new BufferedReader(new FileReader(translationsDir))) {
-            // English backup file.
-            FileWriter fw = new FileWriter(originalsDir);
+        Thread t = new Thread(() -> {
+                try (BufferedReader br = new BufferedReader(new FileReader(translationsDir))) {
+                // English backup file.
+                FileWriter fw = new FileWriter(originalsDir);
 
-            for (String line; (line = br.readLine()) != null; ) {
-                String[] fields = line.split("\\" + ENTRY_DELIMITER);
-                final String trType = fields[0];
-                final String trChannelID = fields[1];
-                final String trName = fields[2];
+                for (String line; (line = br.readLine()) != null; ) {
+                    String[] fields = line.split("\\" + ENTRY_DELIMITER);
+                    final String trType = fields[0];
+                    final String trChannelID = fields[1];
+                    final String trName = fields[2].replace('_', ' ');
 
-                switch (trType.toLowerCase()) {
-                    case "text_channel": {
-                        TextChannel chnl = getJDA().getTextChannelById(trChannelID);
+                    switch (trType.toLowerCase()) {
+                        case "text_channel": {
+                            TextChannel chnl = getJDA().getTextChannelById(trChannelID);
 
-                        if (chnl != null) {
-                            fw.write(trType + "|" + trChannelID + "|" + chnl.getName() + "\n");
+                            if (chnl != null) {
+                                fw.write(trType + "|" + trChannelID + "|" + chnl.getName() + "\n");
 
-                            logger.info("Renaming text channel " + chnl.getName() + " to " + trName + "...");
-                            chnl.getManager().setName(trName).queue();
+                                logger.info("Renaming text channel " + chnl.getName() + " to " + trName + "...");
+                                chnl.getManager().setName(trName).queue();
 
+                            }
+                            break;
                         }
-                        break;
-                    }
-                    case "voice_channel": {
-                        VoiceChannel vc = getJDA().getVoiceChannelById(trChannelID);
+                        case "voice_channel": {
+                            VoiceChannel vc = getJDA().getVoiceChannelById(trChannelID);
 
-                        if (vc != null) {
-                            fw.write(trType + "|" + trChannelID + "|" + vc.getName() + "\n");
+                            if (vc != null) {
+                                fw.write(trType + "|" + trChannelID + "|" + vc.getName() + "\n");
 
-                            logger.info("Renaming voice channel " + vc.getName() + "\n");
-                            vc.getManager().setName(trName).queue();
+                                logger.info("Renaming voice channel " + vc.getName() + " to " + trName + "...");
+                                vc.getManager().setName(trName).queue();
+                            }
+                            break;
                         }
-                        break;
+                        case "category": {
+                            Category category = getJDA().getCategoryById(trChannelID);
+
+                            if (category != null) {
+                                fw.write(trType + "|" + trChannelID + "|" + category.getName() + "\n");
+
+                                logger.info("Renaming category " + category.getName() + " to " + trName + "...");
+                                category.getManager().setName(trName).queue();
+                            }
+                        }
                     }
+                    /* We could potentially sleep the thread for each iteration 
+                    * to refrain from hitting Discord's rate limits. */
+                    Thread.sleep(UPDATE_DELAY);
                 }
-                /* We could potentially sleep the thread for each iteration 
-                 * to refrain from hitting Discord's rate limits. */
-                Thread.sleep(UPDATE_DELAY);
+                
+                fw.close();
+            } catch (IOException | InterruptedException e) {
+                e.printStackTrace();
             }
-            
-            fw.close();
-        } catch (IOException | InterruptedException e) {
-            e.printStackTrace();
-            return false;
-        }
+        });
+        t.start();
         return true;
     }
 
@@ -151,41 +164,51 @@ public class App {
     public void disableAprilFools() {
         final String originalsDir = config.getOriginalTranslationsDir();
 
-        try (BufferedReader br = new BufferedReader(new FileReader(originalsDir))) {
-            for (String line; (line = br.readLine()) != null; ) {
-                String[] fields = line.split("\\" + ENTRY_DELIMITER);
-                final String type = fields[0];
-                final String channelID = fields[1];
-                final String name = fields[2];
+        Thread t = new Thread(() -> {
+            try (BufferedReader br = new BufferedReader(new FileReader(originalsDir))) {
+                for (String line; (line = br.readLine()) != null; ) {
+                    String[] fields = line.split("\\" + ENTRY_DELIMITER);
+                    final String type = fields[0];
+                    final String channelID = fields[1];
+                    final String name = fields[2].replace('_', ' ');
 
-                switch (type.toLowerCase()) {
-                    case "text_channel": {
-                        TextChannel chnl = getJDA().getTextChannelById(channelID);
+                    switch (type.toLowerCase()) {
+                        case "text_channel": {
+                            TextChannel chnl = getJDA().getTextChannelById(channelID);
 
-                        if (chnl != null) {
-                            logger.info("Reverting " + chnl.getName() + " to " + name + "...");
-                            chnl.getManager().setName(name).queue();
+                            if (chnl != null) {
+                                logger.info("Reverting text channel" + chnl.getName() + " to " + name + "...");
+                                chnl.getManager().setName(name).queue();
+                            }
+                            break;
                         }
-                        break;
-                    }
-                    case "voice_channel": {
-                        VoiceChannel vc = getJDA().getVoiceChannelById(channelID);
+                        case "voice_channel": {
+                            VoiceChannel vc = getJDA().getVoiceChannelById(channelID);
 
-                        if (vc != null) {
-                            logger.info("Reverting voice channel " + vc.getName() + "\n");
-                            vc.getManager().setName(name).queue();
+                            if (vc != null) {
+                                logger.info("Reverting voice channel " + vc.getName() + "\n");
+                                vc.getManager().setName(name).queue();
+                            }
+                            break;
                         }
-                        break;
+                        case "category": {
+                            Category category = getJDA().getCategoryById(channelID);
 
+                            if (category != null) {
+                                logger.info("Reverting category " + category.getName() + "\n");
+                                category.getManager().setName(name).queue();
+                            }
+                            break;
+                        }
                     }
+
+                    Thread.sleep(UPDATE_DELAY);
                 }
-
-                Thread.sleep(UPDATE_DELAY);
+            } catch (IOException | InterruptedException e) {
+                e.printStackTrace();
             }
-            
-        } catch (IOException | InterruptedException e) {
-            e.printStackTrace();
-        }
+        });
+        t.start();
     }
 
     /**
