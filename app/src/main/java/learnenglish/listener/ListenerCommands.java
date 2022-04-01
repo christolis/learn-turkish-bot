@@ -19,7 +19,7 @@ public class ListenerCommands extends ListenerAdapter {
         App app = App.getInstance();
 
         /* If a user is not supposed to use our command, let them know. */
-        if (App.canMemberUseCommands(member)) {
+        if (!App.canMemberUseCommands(member)) {
             event.reply("Insufficient permissions.").setEphemeral(true).queue();
             return;
         }
