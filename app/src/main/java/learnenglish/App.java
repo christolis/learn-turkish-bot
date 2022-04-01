@@ -220,7 +220,7 @@ public class App {
      * Initializes the bot's configuration file.
      * Parses the selected file and deserializes it
      * into an instance of Configuration.class
-     * @param The configuration's path.
+     * @param path The configuration's path.
      */
     public boolean initConfig(String path) {
         try {
