@@ -1,0 +1,10 @@
+{
+    "token": "<BOT_TOKEN_HERE>",
+    "channelTranslations": "relative/path/to/translations.txt",
+    "originalTranslations": "relative/path/to/originals.txt",
+    "allowedRoles": [
+        "1234567890",
+        "0987654321"
+    ],
+    "activity": "<BOT_ACTIVITY_HERE>"
+}

@@ -6,6 +6,10 @@ plugins {
 
 mainClassName = 'learnenglish.App'
 
+ext {
+    env = findProperty('env') ?: 'dev'
+}
+
 repositories {
     mavenCentral()
 }
@@ -30,11 +34,22 @@ dependencies {
     implementation 'org.slf4j:slf4j-simple:1.6.1'
 }
 
-jar {
+shadowJar {
     manifest {
         attributes(
             'Main-Class': 'learnenglish.App'
         )
     }
-    from { configurations.extraLibs.collect { it.isDirectory() ? it : zipTree(it) } }
+    exclude('*sample*')
+
+    // There really needs to be written a better
+    // implementation for this feature...
+    if (env == 'dev') {
+        exclude('prod*')
+        archiveClassifier = 'dev'
+    }
+    if (env == 'prod') {
+        exclude('dev*')
+        archiveClassifier = 'prod'
+    }
 }
