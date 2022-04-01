@@ -36,9 +36,11 @@ import net.dv8tion.jda.api.utils.cache.CacheFlag;
  * @author Christolis
  */
 public class App {
-    private static final String CONFIG_PATH = "config.json";
     private static final char ENTRY_DELIMITER = '|';
     private static final int UPDATE_DELAY = 500;
+    private static final String[] CONFIG_PATHS = {
+        "dev-config.json", "prod-config.json"
+    };
 
     /* An instance of the app running */
     private static App instance;
@@ -190,21 +192,21 @@ public class App {
      * Initializes the bot's configuration file.
      * Parses the selected file and deserializes it
      * into an instance of Configuration.class
+     * @param The configuration's path.
      */
-    public void initConfig() {
+    public boolean initConfig(String path) {
         try {
             final Gson gson = new Gson();
             final ClassLoader classLoader = getClass().getClassLoader();
-            InputStream inputStream = classLoader.getResourceAsStream(CONFIG_PATH);
+            InputStream inputStream = classLoader.getResourceAsStream(path);
             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
 
             config = gson.fromJson(reader, Configuration.class);
             reader.close();
         } catch (Exception e) {
-            e.printStackTrace();
-            logger.error("Could not initialize config.json!");
-            System.exit(1);
+            return false;
         }
+        return true;
     }
 
     /**
@@ -212,7 +214,14 @@ public class App {
      * Automatically sets up the configuration of it as well.
      */
     public void start() {
-        this.initConfig();
+        for (String conf : CONFIG_PATHS) {
+            if (this.initConfig(conf)) break;
+        }
+
+        if (this.getConfiguration() == null) {
+            logger.error("I was unable to find any configurations! Exiting...");
+            System.exit(1);
+        }
 
         try {
             JDABuilder builder = JDABuilder.createDefault(
