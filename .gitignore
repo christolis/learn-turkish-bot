@@ -16,3 +16,4 @@ config.json
 .settings
 app/.classpath
 app/.project
+*-config.json
