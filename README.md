@@ -11,5 +11,7 @@ The Learn Turkish Bot is a Discord bot that was created for a server called Lear
 ## :inbox_tray: Installation
 To run the Discord from your own machine, you will need a version of the Java SDK 8+ or higher. Since the project makes use of Gradle, you will have to clone the project and execute `./gradlew build -Penv=dev` inside its root folder to get the development version JAR. To get the production one, use `./gradlew build -Penv=prod`.
 
+Keep in mind that you will have to make two copies of the sample configuration file (`config.sample.json`) located in the main resources file. One should be called `dev-config.json` that will be used in the development version and the other should be called `prod-config.json` for the production version.
+
 ## :scroll: License
 Learn Turkish Bot is published under the Apache 2.0 license. For more information, read the [LICENSE](https://github.com/christolisofficial/learn-turkish-bot/blob/main/LICENSE) file.
