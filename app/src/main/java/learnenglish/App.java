@@ -38,7 +38,7 @@ import net.dv8tion.jda.api.utils.cache.CacheFlag;
  */
 public class App {
     private static final char ENTRY_DELIMITER = '|';
-    private static final int UPDATE_DELAY = 500;
+    private static final int UPDATE_DELAY = 1500;
     private static final String[] CONFIG_PATHS = {
         "dev-config.json", "prod-config.json"
     };
