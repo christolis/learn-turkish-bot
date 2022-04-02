@@ -24,6 +24,7 @@ import learnenglish.listener.ListenerCommands;
 import net.dv8tion.jda.api.JDA;
 import net.dv8tion.jda.api.JDABuilder;
 import net.dv8tion.jda.api.entities.Activity;
+import net.dv8tion.jda.api.entities.Category;
 import net.dv8tion.jda.api.entities.Member;
 import net.dv8tion.jda.api.entities.TextChannel;
 import net.dv8tion.jda.api.entities.VoiceChannel;
@@ -36,9 +37,11 @@ import net.dv8tion.jda.api.utils.cache.CacheFlag;
  * @author Christolis
  */
 public class App {
-    private static final String CONFIG_PATH = "config.json";
     private static final char ENTRY_DELIMITER = '|';
-    private static final int UPDATE_DELAY = 500;
+    private static final int UPDATE_DELAY = 1500;
+    private static final String[] CONFIG_PATHS = {
+        "dev-config.json", "prod-config.json"
+    };
 
     /* An instance of the app running */
     private static App instance;
@@ -93,51 +96,68 @@ public class App {
             return true;
         }
 
-        try (BufferedReader br = new BufferedReader(new FileReader(translationsDir))) {
-            // English backup file.
-            FileWriter fw = new FileWriter(originalsDir);
+        Thread t = new Thread(() -> {
+                FileWriter fw = null; // English backup file.
 
-            for (String line; (line = br.readLine()) != null; ) {
-                String[] fields = line.split("\\" + ENTRY_DELIMITER);
-                final String trType = fields[0];
-                final String trChannelID = fields[1];
-                final String trName = fields[2];
+                try (BufferedReader br = new BufferedReader(new FileReader(translationsDir))) {
+                fw = new FileWriter(originalsDir);
 
-                switch (trType.toLowerCase()) {
-                    case "text_channel": {
-                        TextChannel chnl = getJDA().getTextChannelById(trChannelID);
+                for (String line; (line = br.readLine()) != null; ) {
+                    String[] fields = line.split("\\" + ENTRY_DELIMITER);
+                    final String trType = fields[0];
+                    final String trChannelID = fields[1];
+                    final String trName = fields[2].replace('_', ' ');
 
-                        if (chnl != null) {
-                            fw.write(trType + "|" + trChannelID + "|" + chnl.getName() + "\n");
+                    switch (trType.toLowerCase()) {
+                        case "text_channel": {
+                            TextChannel chnl = getJDA().getTextChannelById(trChannelID);
 
-                            logger.info("Renaming text channel " + chnl.getName() + " to " + trName + "...");
-                            chnl.getManager().setName(trName).queue();
+                            if (chnl != null) {
+                                fw.write(trType + "|" + trChannelID + "|" + chnl.getName() + "\n");
 
+                                logger.info("Renaming text channel " + chnl.getName() + " to " + trName + "...");
+                                chnl.getManager().setName(trName).queue();
+
+                            }
+                            break;
                         }
-                        break;
-                    }
-                    case "voice_channel": {
-                        VoiceChannel vc = getJDA().getVoiceChannelById(trChannelID);
+                        case "voice_channel": {
+                            VoiceChannel vc = getJDA().getVoiceChannelById(trChannelID);
 
-                        if (vc != null) {
-                            fw.write(trType + "|" + trChannelID + "|" + vc.getName() + "\n");
+                            if (vc != null) {
+                                fw.write(trType + "|" + trChannelID + "|" + vc.getName() + "\n");
 
-                            logger.info("Renaming voice channel " + vc.getName() + "\n");
-                            vc.getManager().setName(trName).queue();
+                                logger.info("Renaming voice channel " + vc.getName() + " to " + trName + "...");
+                                vc.getManager().setName(trName).queue();
+                            }
+                            break;
                         }
-                        break;
+                        case "category": {
+                            Category category = getJDA().getCategoryById(trChannelID);
+
+                            if (category != null) {
+                                fw.write(trType + "|" + trChannelID + "|" + category.getName() + "\n");
+
+                                logger.info("Renaming category " + category.getName() + " to " + trName + "...");
+                                category.getManager().setName(trName).queue();
+                            }
+                        }
                     }
+                    /* We could potentially sleep the thread for each iteration 
+                    * to refrain from hitting Discord's rate limits. */
+                    Thread.sleep(UPDATE_DELAY);
                 }
-                /* We could potentially sleep the thread for each iteration 
-                 * to refrain from hitting Discord's rate limits. */
-                Thread.sleep(UPDATE_DELAY);
+                
+                fw.close();
+            } catch (IOException | InterruptedException e) {
+                try {
+                    if (fw != null) fw.close();
+                } catch (IOException e2) {
+                    e2.printStackTrace();
+                }
             }
-            
-            fw.close();
-        } catch (IOException | InterruptedException e) {
-            e.printStackTrace();
-            return false;
-        }
+        });
+        t.start();
         return true;
     }
 
@@ -149,62 +169,72 @@ public class App {
     public void disableAprilFools() {
         final String originalsDir = config.getOriginalTranslationsDir();
 
-        try (BufferedReader br = new BufferedReader(new FileReader(originalsDir))) {
-            for (String line; (line = br.readLine()) != null; ) {
-                String[] fields = line.split("\\" + ENTRY_DELIMITER);
-                final String type = fields[0];
-                final String channelID = fields[1];
-                final String name = fields[2];
+        Thread t = new Thread(() -> {
+            try (BufferedReader br = new BufferedReader(new FileReader(originalsDir))) {
+                for (String line; (line = br.readLine()) != null; ) {
+                    String[] fields = line.split("\\" + ENTRY_DELIMITER);
+                    final String type = fields[0];
+                    final String channelID = fields[1];
+                    final String name = fields[2].replace('_', ' ');
 
-                switch (type.toLowerCase()) {
-                    case "text_channel": {
-                        TextChannel chnl = getJDA().getTextChannelById(channelID);
+                    switch (type.toLowerCase()) {
+                        case "text_channel": {
+                            TextChannel chnl = getJDA().getTextChannelById(channelID);
 
-                        if (chnl != null) {
-                            logger.info("Reverting " + chnl.getName() + " to " + name + "...");
-                            chnl.getManager().setName(name).queue();
+                            if (chnl != null) {
+                                logger.info("Reverting text channel " + chnl.getName() + " to " + name + "...");
+                                chnl.getManager().setName(name).queue();
+                            }
+                            break;
                         }
-                        break;
-                    }
-                    case "voice_channel": {
-                        VoiceChannel vc = getJDA().getVoiceChannelById(channelID);
+                        case "voice_channel": {
+                            VoiceChannel vc = getJDA().getVoiceChannelById(channelID);
 
-                        if (vc != null) {
-                            logger.info("Reverting voice channel " + vc.getName() + "\n");
-                            vc.getManager().setName(name).queue();
+                            if (vc != null) {
+                                logger.info("Reverting voice channel " + vc.getName() + " to " + name + "...");
+                                vc.getManager().setName(name).queue();
+                            }
+                            break;
                         }
-                        break;
+                        case "category": {
+                            Category category = getJDA().getCategoryById(channelID);
 
+                            if (category != null) {
+                                logger.info("Reverting category " + category.getName() + " to " + name + "...");
+                                category.getManager().setName(name).queue();
+                            }
+                            break;
+                        }
                     }
+
+                    Thread.sleep(UPDATE_DELAY);
                 }
-
-                Thread.sleep(UPDATE_DELAY);
+            } catch (IOException | InterruptedException e) {
+                e.printStackTrace();
             }
-            
-        } catch (IOException | InterruptedException e) {
-            e.printStackTrace();
-        }
+        });
+        t.start();
     }
 
     /**
      * Initializes the bot's configuration file.
      * Parses the selected file and deserializes it
      * into an instance of Configuration.class
+     * @param path The configuration's path.
      */
-    public void initConfig() {
+    public boolean initConfig(String path) {
         try {
             final Gson gson = new Gson();
             final ClassLoader classLoader = getClass().getClassLoader();
-            InputStream inputStream = classLoader.getResourceAsStream(CONFIG_PATH);
+            InputStream inputStream = classLoader.getResourceAsStream(path);
             BufferedReader reader = new BufferedReader(new InputStreamReader(inputStream));
 
             config = gson.fromJson(reader, Configuration.class);
             reader.close();
         } catch (Exception e) {
-            e.printStackTrace();
-            logger.error("Could not initialize config.json!");
-            System.exit(1);
+            return false;
         }
+        return true;
     }
 
     /**
@@ -212,7 +242,14 @@ public class App {
      * Automatically sets up the configuration of it as well.
      */
     public void start() {
-        this.initConfig();
+        for (String conf : CONFIG_PATHS) {
+            if (this.initConfig(conf)) break;
+        }
+
+        if (this.getConfiguration() == null) {
+            logger.error("I was unable to find any configurations! Exiting...");
+            System.exit(1);
+        }
 
         try {
             JDABuilder builder = JDABuilder.createDefault(

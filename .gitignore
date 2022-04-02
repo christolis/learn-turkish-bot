@@ -8,7 +8,12 @@ build
 *.jar
 
 # Directories
-bin/*
+*/bin/*
+.vscode/*
 
 # Blacklisted files
 config.json
+.settings
+app/.classpath
+app/.project
+*-config.json
