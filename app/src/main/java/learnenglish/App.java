@@ -182,7 +182,7 @@ public class App {
                             TextChannel chnl = getJDA().getTextChannelById(channelID);
 
                             if (chnl != null) {
-                                logger.info("Reverting text channel" + chnl.getName() + " to " + name + "...");
+                                logger.info("Reverting text channel " + chnl.getName() + " to " + name + "...");
                                 chnl.getManager().setName(name).queue();
                             }
                             break;
@@ -191,7 +191,7 @@ public class App {
                             VoiceChannel vc = getJDA().getVoiceChannelById(channelID);
 
                             if (vc != null) {
-                                logger.info("Reverting voice channel " + vc.getName() + "\n");
+                                logger.info("Reverting voice channel " + vc.getName() + " to " + name + "...");
                                 vc.getManager().setName(name).queue();
                             }
                             break;
@@ -200,7 +200,7 @@ public class App {
                             Category category = getJDA().getCategoryById(channelID);
 
                             if (category != null) {
-                                logger.info("Reverting category " + category.getName() + "\n");
+                                logger.info("Reverting category " + category.getName() + " to " + name + "...");
                                 category.getManager().setName(name).queue();
                             }
                             break;
